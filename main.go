@@ -28,8 +28,8 @@ func main() {
 	for name, _ := range teams {
 		base := antwar.Base{name, antwar.RandomPos()}
 		bases.Push(base)
-		board.Tiles[base.X][base.Y].Base = true;
-		board.Tiles[base.X][base.Y].Team = name;
+		board.At(base.Pos).Base = true;
+		board.At(base.Pos).Team = name;
 	}
 	
 	for i := 0; i < 10; i++ {
@@ -44,7 +44,6 @@ func main() {
 	board.CreateFood(4000)
 	
 	for i := 0; i < 1000; i++ {
-		// Spawn new ants
 		bases.Do(func (b interface{}) {
 			base, _ := b.(antwar.Base)
 			tile := board.At(base.Pos)
@@ -61,10 +60,10 @@ func main() {
 		board.CreateFood(5);
 		
 		for j := 0; j < ants.Len(); j++ {
-			ant, bringFood := ants.At(j).(*antwar.Ant)
+			ant := ants.At(j).(*antwar.Ant)
 			pos := ant.Pos
 			env := board.Environment(pos)
-			decision, _ := ant.Brain.Decide(env)
+			decision, bringFood := ant.Brain.Decide(env)
 			switch decision {
 			case antwar.NORTH: pos = pos.North()
 			case antwar.SOUTH: pos = pos.South()

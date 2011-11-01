@@ -24,8 +24,8 @@ func (b *Board) Environment(pos Pos) Environment {
 	env[0] = *board.At(pos)
 	env[1] = *board.At(pos.North())
 	env[2] = *board.At(pos.East())
-	env[1] = *board.At(pos.South())
-	env[1] = *board.At(pos.West())
+	env[3] = *board.At(pos.South())
+	env[4] = *board.At(pos.West())
 	return *env
 }
 
