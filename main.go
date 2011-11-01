@@ -3,8 +3,8 @@ package main
 import (
 	"antwar"
 	"ants/random_ant"
+	"ants/naive_ant"
 	"container/vector"
-	"exp/gui/x11" 
 	"fmt"
 )
 
@@ -18,23 +18,12 @@ func Mod(n, d int) int {
 func main() {
 	teams := map[string]AntSpawner{
 		"randomAnt": random_ant.Spawn,
+		"naiveAnt": naive_ant.Spawn,
 	}
 	ants := new(vector.Vector);
 	bases := new(vector.Vector);
-	board := new(antwar.Board);
-	win, err := x11.NewWindow()
-	if (err != nil) {
-		println(err);
-	}
-	// create board
-	// create bases
-	
-	// turn:
-	//   - create initial food
-	//   - spawn new ants
-	//   - move ants
-	//   - draw board
-	//   - print statistics
+	board := antwar.NewBoard();
+	gui := antwar.NewGUI(board);
 	
 	for name, _ := range teams {
 		base := antwar.Base{name, antwar.RandomPos()}
@@ -43,46 +32,62 @@ func main() {
 		board.Tiles[base.X][base.Y].Team = name;
 	}
 	
-	for i := 0; i < 30; i++ {
+	for i := 0; i < 10; i++ {
 		for j := 0; j < bases.Len(); j++ {
 			base, _ := bases.At(j).(antwar.Base);
-			ant := &antwar.Ant{teams[base.Team](), base.Pos}
+			ant := &antwar.Ant{teams[base.Team](), base.Team, base.Pos}
 			ants.Push(ant)
-			board.Tiles[base.X][base.Y].Ants++
+			board.At(base.Pos).Ants++
 		}
 	}
 	
-	for i := 0; i < 100000; i++ {
+	board.CreateFood(4000)
+	
+	for i := 0; i < 1000; i++ {
+		// Spawn new ants
+		bases.Do(func (b interface{}) {
+			base, _ := b.(antwar.Base)
+			tile := board.At(base.Pos)
+			for ; 0 < tile.Food; {
+				ant := &antwar.Ant{teams[base.Team](), base.Team, base.Pos}
+				ants.Push(ant)
+				tile := board.At(base.Pos)
+				tile.Ants++
+				tile.Food--
+				fmt.Printf("+");
+			}
+		})
+		
+		board.CreateFood(5);
+		
 		for j := 0; j < ants.Len(); j++ {
-			ant, _ := ants.At(j).(*antwar.Ant)
-			decision := ant.Brain.Decide(nil)
+			ant, bringFood := ants.At(j).(*antwar.Ant)
 			pos := ant.Pos
-			if (decision == antwar.NORTH) {
-				pos.Y = Mod(pos.Y + 1, 600)
+			env := board.Environment(pos)
+			decision, _ := ant.Brain.Decide(env)
+			switch decision {
+			case antwar.NORTH: pos = pos.North()
+			case antwar.SOUTH: pos = pos.South()
+			case antwar.EAST: pos = pos.East()
+			case antwar.WEST: pos = pos.West()
 			}
-			if (decision == antwar.SOUTH) {
-				pos.Y = Mod(pos.Y - 1, 600)
+			fromTile := board.At(ant.Pos)
+			fromTile.Ants--
+			bringFood = bringFood && fromTile.Food > 0
+			if bringFood {
+				fromTile.Food--
 			}
-			if (decision == antwar.EAST) {
-				pos.X = Mod(pos.X + 1, 800)
-			}
-			if (decision == antwar.WEST) {
-				pos.X = Mod(pos.X - 1,800)
-			}
-			
-			board.Tiles[ant.X][ant.Y].Ants--
-			win.Screen().Set(ant.X, ant.Y, board.Tiles[ant.X][ant.Y].Color());
+			board.Update(ant.Pos)
 			ant.Pos = pos;
-			board.Tiles[ant.X][ant.Y].Ants++
-			win.Screen().Set(ant.X, ant.Y, board.Tiles[ant.X][ant.Y].Color());
+			toTile := board.At(ant.Pos)
+			toTile.Ants++
+			toTile.Team = ant.Team
+			if bringFood {
+				toTile.Food++
+			}
+			board.Update(ant.Pos)
 		}
-		win.FlushImage()
-		fmt.Println("turn over")
 	}
-	
 	fmt.Println("Game over")
-	
-	<-win.EventChan();
-	win.Close();
-	println("Done");
+	gui.Close();
 }
