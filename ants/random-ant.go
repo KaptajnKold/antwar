@@ -9,7 +9,7 @@ type randomAnt struct {
 	direction antwar.Action
 }
 
-func (a *randomAnt) Decide(env antwar.Environment) (antwar.Action, bool) {
+func (a *randomAnt) Decide(env *antwar.Environment) (antwar.Action, bool) {
 	return (antwar.Action)(rand.Intn(4) + 1), true
 }
 

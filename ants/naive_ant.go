@@ -103,7 +103,7 @@ func oppositeDirectionOf(d antwar.Action) (opposite antwar.Action) {
 	return
 }
 
-func (a *naiveAnt) Decide(env antwar.Environment) (decision antwar.Action, bringFood bool) {
+func (a *naiveAnt) Decide(env *antwar.Environment) (decision antwar.Action, bringFood bool) {
 	if env[0].Food > 0 {
 		decision = a.directionHome();
 	} else if env[1].Food > 0 {

@@ -6,16 +6,36 @@ import (
 	"ants/naive_ant"
 	"container/vector"
 	"fmt"
+	"os"
 )
+
+type timeKeeper struct {
+	start, nanos, count int64
+}
+
+func (t *timeKeeper) begin() {
+	secs, nsecs, _ := os.Time()
+	t.start = 1e9*secs+nsecs
+}
+
+func (t *timeKeeper) end() {
+	secs, nsecs, _ := os.Time()
+	stopped :=  1e9*secs+nsecs - t.start
+	t.count++
+	t.nanos = t.nanos + stopped
+}
+
+func (t *timeKeeper) String() {
+	fmt.Printf("count:%v avg:%v total:%v \n", t.count, t.nanos/t.count, t.nanos)
+}
 
 type AntSpawner (func() antwar.AntBrain);
 
-func Mod(n, d int) int {
-	return ((n % d) + d) % d;
-}
-
-
 func main() {
+	timers := make(map[string]*timeKeeper)
+	timers["decide"] = new(timeKeeper)
+	timers["move"] = new(timeKeeper)
+	
 	teams := map[string]AntSpawner{
 		"randomAnt": random_ant.Spawn,
 		"naiveAnt": naive_ant.Spawn,
@@ -24,6 +44,7 @@ func main() {
 	bases := new(vector.Vector);
 	board := antwar.NewBoard();
 	gui := antwar.NewGUI(board);
+	defer gui.Close()
 	
 	for name, _ := range teams {
 		base := antwar.Base{name, antwar.RandomPos()}
@@ -41,9 +62,9 @@ func main() {
 		}
 	}
 	
-	board.CreateFood(4000)
+	board.CreateFood(400)
 	
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 100000; i++ {
 		bases.Do(func (b interface{}) {
 			base, _ := b.(antwar.Base)
 			tile := board.At(base.Pos)
@@ -53,17 +74,22 @@ func main() {
 				tile := board.At(base.Pos)
 				tile.Ants++
 				tile.Food--
-				fmt.Printf("+");
 			}
 		})
 		
-		board.CreateFood(5);
+		board.CreateFood(1);
 		
-		for j := 0; j < ants.Len(); j++ {
-			ant := ants.At(j).(*antwar.Ant)
+		ants.Do(func (a interface{}){
+			
+			ant, _ := a.(*antwar.Ant)
 			pos := ant.Pos
+			timers["move"].begin()
 			env := board.Environment(pos)
+			timers["move"].end()
+			
+			timers["decide"].begin()
 			decision, bringFood := ant.Brain.Decide(env)
+			timers["decide"].end()
 			switch decision {
 			case antwar.NORTH: pos = pos.North()
 			case antwar.SOUTH: pos = pos.South()
@@ -85,8 +111,11 @@ func main() {
 				toTile.Food++
 			}
 			board.Update(ant.Pos)
-		}
+		})
+	}
+	for name, stats := range(timers) {
+		fmt.Println(name + ": ")
+		stats.String()
 	}
 	fmt.Println("Game over")
-	gui.Close();
 }

@@ -18,15 +18,14 @@ func (b *Board) At(p Pos) *Tile {
 	return (*b).Tiles[p.X][p.Y];
 }
 
-func (b *Board) Environment(pos Pos) Environment {
-	board := *b
+func (b *Board) Environment(pos Pos) *Environment {
 	env := new(Environment)
-	env[0] = *board.At(pos)
-	env[1] = *board.At(pos.North())
-	env[2] = *board.At(pos.East())
-	env[3] = *board.At(pos.South())
-	env[4] = *board.At(pos.West())
-	return *env
+	env[0] = *b.At(pos)
+	env[1] = *b.At(pos.North())
+	env[2] = *b.At(pos.East())
+	env[3] = *b.At(pos.South())
+	env[4] = *b.At(pos.West())
+	return env
 }
 
 func (b *Board) CreateFood(n int) {
@@ -39,7 +38,9 @@ func (b *Board) CreateFood(n int) {
 }
 
 func (b *Board) Update(pos Pos) {
-	b.OnUpdate(pos)
+	if b.OnUpdate != nil {
+		b.OnUpdate(pos)
+	}
 }
 
 func NewBoard() *Board {

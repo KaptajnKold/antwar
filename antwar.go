@@ -54,7 +54,7 @@ type Tile struct {
 type Environment [5](Tile)
 
 type AntBrain interface {
-	Decide(env Environment) (Action, bool)
+	Decide(env *Environment) (Action, bool)
 }
 
 type Ant struct {
@@ -80,5 +80,3 @@ func (t *Tile) Color() image.Color {
 	}
 	return image.Black;
 }
-
-
