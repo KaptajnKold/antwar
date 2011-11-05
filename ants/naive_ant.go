@@ -104,21 +104,21 @@ func oppositeDirectionOf(d antwar.Action) (opposite antwar.Action) {
 }
 
 func (a *naiveAnt) Decide(env *antwar.Environment) (decision antwar.Action, bringFood bool) {
-	if env[0].Food > 0 {
+	if env[0].FoodCount() > 0 {
 		decision = a.directionHome();
-	} else if env[1].Food > 0 {
+	} else if env[1].FoodCount() > 0 {
 		decision = antwar.NORTH
-	} else if env[2].Food > 0 {
+	} else if env[2].FoodCount() > 0 {
 		decision = antwar.EAST
-	} else if env[3].Food > 0 {
+	} else if env[3].FoodCount() > 0 {
 		decision = antwar.SOUTH
-	} else if env[4].Food > 0 {
+	} else if env[4].FoodCount() > 0 {
 		decision = antwar.WEST
 	} else {
 		decision = a.directionOut();
 	}
 	a.update(decision)
-	bringFood = env[0].Food > 0
+	bringFood = env[0].FoodCount() > 0
 	return
 }
 

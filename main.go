@@ -39,6 +39,7 @@ func main() {
 	teams := map[string]AntSpawner{
 		"randomAnt": random_ant.Spawn,
 		"naiveAnt": naive_ant.Spawn,
+		"cleverAnt": naive_ant.Spawn,
 	}
 	ants := new(vector.Vector);
 	bases := new(vector.Vector);
@@ -49,8 +50,7 @@ func main() {
 	for name, _ := range teams {
 		base := antwar.Base{name, antwar.RandomPos()}
 		bases.Push(base)
-		board.At(base.Pos).Base = true;
-		board.At(base.Pos).Team = name;
+		board.At(base.Pos).CreateBase(name);
 	}
 	
 	for i := 0; i < 10; i++ {
@@ -58,22 +58,22 @@ func main() {
 			base, _ := bases.At(j).(antwar.Base);
 			ant := &antwar.Ant{teams[base.Team](), base.Team, base.Pos}
 			ants.Push(ant)
-			board.At(base.Pos).Ants++
+			board.At(base.Pos).PutAnt(ant)
 		}
 	}
 	
-	board.CreateFood(400)
+	board.CreateFood(100)
 	
 	for i := 0; i < 100000; i++ {
 		bases.Do(func (b interface{}) {
 			base, _ := b.(antwar.Base)
 			tile := board.At(base.Pos)
-			for ; 0 < tile.Food; {
+			for ; 0 < tile.FoodCount(); {
 				ant := &antwar.Ant{teams[base.Team](), base.Team, base.Pos}
 				ants.Push(ant)
 				tile := board.At(base.Pos)
-				tile.Ants++
-				tile.Food--
+				tile.PutAnt(ant)
+				tile.RemoveFood(1)
 			}
 		})
 		
@@ -82,37 +82,38 @@ func main() {
 		ants.Do(func (a interface{}){
 			
 			ant, _ := a.(*antwar.Ant)
-			pos := ant.Pos
-			timers["move"].begin()
-			env := board.Environment(pos)
-			timers["move"].end()
+			origin := ant.Pos
+			env := board.Environment(origin)
+			destination := origin
 			
-			timers["decide"].begin()
 			decision, bringFood := ant.Brain.Decide(env)
-			timers["decide"].end()
 			switch decision {
-			case antwar.NORTH: pos = pos.North()
-			case antwar.SOUTH: pos = pos.South()
-			case antwar.EAST: pos = pos.East()
-			case antwar.WEST: pos = pos.West()
+			case antwar.NORTH: destination = origin.North()
+			case antwar.SOUTH: destination = origin.South()
+			case antwar.EAST: destination = origin.East()
+			case antwar.WEST: destination = origin.West()
+			case antwar.HERE: return
 			}
+			
 			fromTile := board.At(ant.Pos)
-			fromTile.Ants--
-			bringFood = bringFood && fromTile.Food > 0
-			if bringFood {
-				fromTile.Food--
-			}
-			board.Update(ant.Pos)
-			ant.Pos = pos;
+			fromTile.RemoveAnt(ant)
+			
+			ant.Pos = destination;
 			toTile := board.At(ant.Pos)
-			toTile.Ants++
-			toTile.Team = ant.Team
-			if bringFood {
-				toTile.Food++
+
+			toTile.PutAnt(ant)
+
+			if bringFood && fromTile.FoodCount() > 0{
+				fromTile.RemoveFood(1)
+				toTile.PutFood(1)
 			}
-			board.Update(ant.Pos)
+			
+			board.Update(origin)
+			board.Update(destination)
 		})
+		fmt.Printf("# Ants: %v \n", ants.Len());
 	}
+	
 	for name, stats := range(timers) {
 		fmt.Println(name + ": ")
 		stats.String()
