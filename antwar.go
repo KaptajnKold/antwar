@@ -42,4 +42,15 @@ func NewAntSet(capacity int) AntSet {
 type AntHill struct {
 	Team string
 	Pos
+	Ants AntSet
+}
+
+func NewAntHill(team string, pos Pos) *AntHill {
+	return &AntHill{team, pos, NewAntSet(5000)}
+}
+
+type Team struct {
+	Name string
+	Ants AntSet
+	Spawn AntSpawner
 }

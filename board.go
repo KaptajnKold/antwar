@@ -49,14 +49,14 @@ func (p *Pos) West() Pos {
 }
 
 type Tile struct {
-	ants AntSet
+	Ants AntSet
 	food int
-	team string
+	Team string
 	base bool
 }
 
 func (t *Tile) AntCount() int {
-	return t.ants.Len()
+	return t.Ants.Len()
 }
 
 func (t *Tile) FoodCount() int {
@@ -64,12 +64,12 @@ func (t *Tile) FoodCount() int {
 }
 
 func (t *Tile) RemoveAnt(theAnt *Ant) {
-	t.ants.Remove(theAnt)
+	t.Ants.Remove(theAnt)
 }
 
 func (t *Tile) PutAnt(theAnt *Ant) {
-	t.ants.Put(theAnt)
-	t.team = theAnt.Team
+	t.Ants.Put(theAnt)
+	t.Team = theAnt.Team
 }
 
 func (t *Tile) PutFood(amount int) {
@@ -82,7 +82,7 @@ func (t *Tile) RemoveFood(amount int) {
 
 func (t *Tile) CreateAntHill(team string) {
 	t.base = true
-	t.team = team
+	t.Team = team
 }
 
 func (t *Tile) Color() image.Color {
@@ -92,7 +92,7 @@ func (t *Tile) Color() image.Color {
 	if t.FoodCount() > 0 {
 		return image.RGBAColor{255,255,0,100}
 	}
-	if t.team != "" {
+	if t.Team != "" {
 		return image.RGBAColor{100,100,100,100}
 	}
 	return image.Black;
@@ -138,7 +138,7 @@ func NewBoard() *Board {
 	for x := 0; x < WIDTH; x++ {
 		for y := 0; y < HEIGHT; y++ {
 			board.Tiles[x][y] = new(Tile)
-			board.Tiles[x][y].ants = NewAntSet(20)
+			board.Tiles[x][y].Ants = NewAntSet(20)
 		}
 	}
 	return board

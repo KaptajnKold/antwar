@@ -157,13 +157,15 @@ func (a *cleverAnt) LookForFood(e *antwar.Environment) {
 
 func (a *cleverAnt) Decide(env *antwar.Environment) (decision antwar.Action, bringFood bool) {
 	a.LookForFood(env);
+	
 	if env[0].FoodCount() > 0 {
 		decision = a.home.direction();
 	} else if (a.food.Equals(&a.home)) {
-		decision = a.food.direction();
-	} else {
 		decision = a.directionOut();
+	} else {
+		decision = a.food.direction();
 	}
+	
 	a.update(decision)
 	bringFood = env[0].FoodCount() > 0
 	return
