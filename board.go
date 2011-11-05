@@ -2,7 +2,6 @@ package antwar
 
 import (
 	"rand"
-	"container/vector"
 	"image"
 )
 
@@ -50,7 +49,7 @@ func (p *Pos) West() Pos {
 }
 
 type Tile struct {
-	ants vector.Vector
+	ants AntSet
 	food int
 	team string
 	base bool
@@ -65,21 +64,11 @@ func (t *Tile) FoodCount() int {
 }
 
 func (t *Tile) RemoveAnt(theAnt *Ant) {
-	for i := 0; i < t.ants.Len(); i++ {
-		if anAnt, _ := t.ants.At(i).(*Ant); theAnt == anAnt {
-			t.ants.Delete(i);
-			return;
-		}
-	}
+	t.ants.Remove(theAnt)
 }
 
 func (t *Tile) PutAnt(theAnt *Ant) {
-	for i := 0; i < t.ants.Len(); i++ {
-		if anAnt, _ := t.ants.At(i).(*Ant); theAnt == anAnt {
-			return;
-		}
-	}
-	t.ants.Push(theAnt)
+	t.ants.Put(theAnt)
 	t.team = theAnt.Team
 }
 
@@ -91,7 +80,7 @@ func (t *Tile) RemoveFood(amount int) {
 	t.food -= amount
 }
 
-func (t *Tile) CreateBase(team string) {
+func (t *Tile) CreateAntHill(team string) {
 	t.base = true
 	t.team = team
 }
@@ -112,6 +101,7 @@ func (t *Tile) Color() image.Color {
 type Board struct {
 	Tiles [WIDTH][HEIGHT]*Tile
 	OnUpdate func(p Pos)
+	Ants AntSet
 }
 
 func (b *Board) At(p Pos) *Tile {
@@ -144,9 +134,11 @@ func (b *Board) Update(pos Pos) {
 
 func NewBoard() *Board {
 	board := new(Board);
+	board.Ants = NewAntSet(10000);
 	for x := 0; x < WIDTH; x++ {
 		for y := 0; y < HEIGHT; y++ {
 			board.Tiles[x][y] = new(Tile)
+			board.Tiles[x][y].ants = NewAntSet(20)
 		}
 	}
 	return board
