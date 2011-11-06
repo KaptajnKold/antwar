@@ -1,5 +1,7 @@
 package antwar
 
+import "image"
+
 type Action int;
 
 type AntBrain interface {
@@ -8,7 +10,7 @@ type AntBrain interface {
 
 type Ant struct {
 	Brain AntBrain
-	Team string
+	Team *Team
 	Pos
 }
 
@@ -40,17 +42,34 @@ func NewAntSet(capacity int) AntSet {
 }
 
 type AntHill struct {
-	Team string
+	Team *Team
 	Pos
 	Ants AntSet
 }
 
-func NewAntHill(team string, pos Pos) *AntHill {
+func NewAntHill(team *Team, pos Pos) *AntHill {
 	return &AntHill{team, pos, NewAntSet(5000)}
 }
+
+var colorIndex = 0
 
 type Team struct {
 	Name string
 	Ants AntSet
 	Spawn AntSpawner
+	Color image.Color
+}
+
+func NewTeam(name string, spawn AntSpawner) *Team {
+	teamColors := [...]image.RGBAColor{
+		image.RGBAColor{255,128,128,255},
+		image.RGBAColor{128,255,128,255},
+		image.RGBAColor{128,128,255,255},
+		image.RGBAColor{127,128,127,255},
+		image.RGBAColor{127,127,128,255},
+		image.RGBAColor{128,127,127,255},
+	}
+	color := teamColors[colorIndex]
+	colorIndex++
+	return &Team{name, NewAntSet(5000), spawn, color}
 }

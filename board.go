@@ -51,7 +51,7 @@ func (p *Pos) West() Pos {
 type Tile struct {
 	Ants AntSet
 	food int
-	Team string
+	Team *Team
 	base bool
 }
 
@@ -80,22 +80,21 @@ func (t *Tile) RemoveFood(amount int) {
 	t.food -= amount
 }
 
-func (t *Tile) CreateAntHill(team string) {
+func (t *Tile) CreateAntHill(team *Team) {
 	t.base = true
 	t.Team = team
 }
 
 func (t *Tile) Color() image.Color {
 	if t.AntCount() > 0 {
-		return image.RGBAColor{255,255,255,100}
+		return t.Team.Color
 	}
-	if t.FoodCount() > 0 {
-		return image.RGBAColor{255,255,0,100}
+	if t.Team != nil {
+		r, g, b, _ := t.Team.Color.RGBA()
+		return image.RGBAColor{uint8(int(r)<<7),uint8(int(g)<<7),uint8(int(b)<<7),255}
+		//return image.RGBAColor{55,55,55,100}
 	}
-	if t.Team != "" {
-		return image.RGBAColor{100,100,100,100}
-	}
-	return image.Black;
+	return image.RGBAColor{255,255,255,uint8(t.FoodCount())}
 }
 
 type Board struct {

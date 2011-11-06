@@ -30,7 +30,7 @@ func (t *timeKeeper) String() {
 	fmt.Printf("count:%v avg:%v total:%v \n", t.count, t.nanos/t.count, t.nanos)
 }
 
-func printStats(teams map[string]antwar.Team) {
+func printStats(teams map[string]*antwar.Team) {
 	fmt.Printf("\x1b[2J");
 	for name, team := range(teams) {
 		fmt.Printf("%v: %v\n", name, team.Ants.Len())
@@ -43,10 +43,10 @@ func main() {
 	timers["decide"] = new(timeKeeper)
 	timers["move"] = new(timeKeeper)
 	
-	teams := map[string]antwar.Team{
-		"randomAnt": antwar.Team{"randomAnt", antwar.NewAntSet(5000), random_ant.Spawn},
-		"naiveAnt": antwar.Team{"randomAnt", antwar.NewAntSet(5000), naive_ant.Spawn},
-		"cleverAnt": antwar.Team{"randomAnt", antwar.NewAntSet(5000), clever_ant.Spawn},
+	teams := map[string]*antwar.Team{
+		"randomAnt": antwar.NewTeam("randomAnt", random_ant.Spawn),
+		"naiveAnt": antwar.NewTeam("naiveAnt", naive_ant.Spawn),
+		"cleverAnt": antwar.NewTeam("cleverAnt", clever_ant.Spawn),
 	}
 	antHills := new(vector.Vector);
 	board := antwar.NewBoard();
@@ -55,10 +55,10 @@ func main() {
 	
 	// Create starting antHill for each team
 	fmt.Println("Creating starting ant hills…")
-	for name, _ := range teams {
-		antHill := antwar.NewAntHill(name, antwar.RandomPos())
+	for _, team := range teams {
+		antHill := antwar.NewAntHill(team, antwar.RandomPos())
 		antHills.Push(antHill)
-		board.At(antHill.Pos).CreateAntHill(name);
+		board.At(antHill.Pos).CreateAntHill(team);
 	}
 	
 	// TODO: Make starting number of ants a command line parameter
@@ -68,10 +68,10 @@ func main() {
 			fmt.Println("Spawn ant…")
 			antHill, _ := antHills.At(j).(*antwar.AntHill)
 			fmt.Println("%v", antHill)
-			ant := &antwar.Ant{teams[antHill.Team].Spawn(), antHill.Team, antHill.Pos}
+			ant := &antwar.Ant{teams[antHill.Team.Name].Spawn(), antHill.Team, antHill.Pos}
 			board.Ants.Put(ant)
 			fmt.Println("Putting ant on hill…")
-			teams[antHill.Team].Ants.Put(ant)
+			ant.Team.Ants.Put(ant)
 			fmt.Println("Done putting ant on hill!")
 			board.At(antHill.Pos).PutAnt(ant)
 		}
@@ -85,10 +85,10 @@ func main() {
 			antHill, _ := b.(*antwar.AntHill)
 			tile := board.At(antHill.Pos)
 			for ; 0 < tile.FoodCount(); {
-				ant := &antwar.Ant{teams[antHill.Team].Spawn(), antHill.Team, antHill.Pos}
+				ant := &antwar.Ant{teams[antHill.Team.Name].Spawn(), antHill.Team, antHill.Pos}
 				board.Ants.Put(ant)
 				tile := board.At(antHill.Pos)
-				teams[antHill.Team].Ants.Put(ant)
+				ant.Team.Ants.Put(ant)
 				tile.PutAnt(ant)
 				tile.RemoveFood(1)
 			}
@@ -120,7 +120,7 @@ func main() {
 				toTile.Ants.Do(func (anAnt *antwar.Ant) {
 					board.Ants.Remove(anAnt)
 					toTile.Ants.Remove(anAnt)
-					teams[anAnt.Team].Ants.Remove(anAnt)
+					anAnt.Team.Ants.Remove(anAnt)
 				})
 			}
 
