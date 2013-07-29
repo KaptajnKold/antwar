@@ -1,15 +1,10 @@
 package antwar
 
 import (
-	"rand"
-	"image"
+	"fmt"
+	"math/rand"
+	"sort"
 )
-
-const (
-	WIDTH = 800
-	HEIGHT = 600
-)
-
 
 const (
 	HERE Action = iota
@@ -20,109 +15,172 @@ const (
 )
 
 func mod(n, d int) int {
-	return ((n % d) + d) % d;
+	return ((n % d) + d) % d
 }
 
 type Pos struct {
 	X, Y int
 }
 
-func RandomPos() Pos {
-	return Pos{rand.Intn(800), rand.Intn(600)}
+type column []*Tile
+
+func (board *Board) NorthFrom(pos Pos) Pos {
+	return Pos{pos.X, mod(pos.Y-1, board.height)}
+}
+func (board *Board) SouthFrom(pos Pos) Pos {
+	return Pos{pos.X, mod(pos.Y+1, board.height)}
+}
+func (board *Board) EastFrom(pos Pos) Pos {
+	return Pos{mod(pos.X+1, board.width), pos.Y}
+}
+func (board *Board) WestFrom(pos Pos) Pos {
+	return Pos{mod(pos.X-1, board.width), pos.Y}
 }
 
-func (p *Pos) North() Pos {
-	pos := *p
-	return Pos{pos.X, mod(pos.Y - 1, 600)}
-}
-func (p *Pos) South() Pos {
-	pos := *p
-	return Pos{pos.X, mod(pos.Y + 1, 600)}
-}
-func (p *Pos) East() Pos {
-	pos := *p
-	return Pos{mod(pos.X + 1, 800), pos.Y}
-}
-func (p *Pos) West() Pos {
-	pos := *p
-	return Pos{mod(pos.X - 1, 800), pos.Y}
-}
-
-type Tile struct {
-	Ants AntSet
-	food int
-	Team *Team
-	base bool
-}
-
-func (t *Tile) AntCount() int {
-	return t.Ants.Len()
-}
-
-func (t *Tile) FoodCount() int {
-	return t.food
-}
-
-func (t *Tile) RemoveAnt(theAnt *Ant) {
-	t.Ants.Remove(theAnt)
-}
-
-func (t *Tile) PutAnt(theAnt *Ant) {
-	t.Ants.Put(theAnt)
-	t.Team = theAnt.Team
-}
-
-func (t *Tile) PutFood(amount int) {
-	t.food += amount
-}
-
-func (t *Tile) RemoveFood(amount int) {
-	t.food -= amount
-}
-
-func (t *Tile) CreateAntHill(team *Team) {
-	t.base = true
-	t.Team = team
-}
-
-func (t *Tile) Color() image.Color {
-	if t.AntCount() > 0 {
-		return t.Team.Color
-	}
-	if t.Team != nil {
-		r, g, b, _ := t.Team.Color.RGBA()
-		return image.RGBAColor{uint8(int(r)<<7),uint8(int(g)<<7),uint8(int(b)<<7),255}
-		//return image.RGBAColor{55,55,55,100}
-	}
-	return image.RGBAColor{255,255,255,uint8(t.FoodCount())}
+type Environment struct {
+	Here, North, East, South, West *TileInfo
 }
 
 type Board struct {
-	Tiles [WIDTH][HEIGHT]*Tile
-	OnUpdate func(p Pos)
-	Ants AntSet
+	width, height int
+	columns       []column
+	OnUpdate      func(p Pos)
+	Ants          AntSet
+	AntHills      []*AntHill
+	Teams         []*Team
+}
+
+func (b *Board) randomPos() Pos {
+	return Pos{rand.Intn(b.width), rand.Intn(b.height)}
+}
+
+func (b *Board) randomTile() *Tile {
+	return b.At(b.randomPos())
 }
 
 func (b *Board) At(p Pos) *Tile {
-	return (*b).Tiles[p.X][p.Y];
+	return (*b).columns[p.X][p.Y]
 }
 
-func (b *Board) Environment(pos Pos) *Environment {
-	env := new(Environment)
-	env[0] = b.At(pos)
-	env[1] = b.At(pos.North())
-	env[2] = b.At(pos.East())
-	env[3] = b.At(pos.South())
-	env[4] = b.At(pos.West())
-	return env
+func (board *Board) createStartingAntHills() {
+	numberOfTeams := len(board.Teams)
+	board.AntHills = make([](*AntHill), numberOfTeams)
+	for i, team := range board.Teams {
+		board.AntHills[i] = board.randomTile().CreateAntHill(team)
+		fmt.Printf("Created anthill at %v\n", board.AntHills[i].tile.pos)
+	}
 }
 
-func (b *Board) CreateFood(n int) {
-	for i := 0; i < n; i++ {
-		pos := RandomPos()
-		b.At(pos).PutFood(rand.Intn(10))
+func (board *Board) destroyAntHill(antHill AntHill) {
+
+}
+
+func (board *Board) CreateStartingAnts(startingNumberOfAnts int) {
+	// Add 1 ant at a time to each team to avoid one team's ants all get to move before the other teams' ants
+	for i := 0; i < startingNumberOfAnts; i++ {
+		for _, antHill := range board.AntHills {
+			ant := antHill.spawnAnt()
+			board.Ants.Put(ant)
+			ant.Team.Ants.Put(ant)
+			fmt.Printf("Created %v starting ants for team %v.\n", ant.Team.Ants.Len(), ant.Team.Name)
+		}
+	}
+	fmt.Printf("Created %v starting ants.\n", board.Ants.Len())
+}
+
+func (b *Board) SpawnFoodRandomly(ncolumns, nFood int) {
+	for i, j := 0, rand.Intn(ncolumns); i < j; i++ {
+		pos := b.randomPos()
+		b.At(pos).PutFood(rand.Intn(nFood))
 		b.Update(pos)
 	}
+}
+
+func (board *Board) SpawnAnts() {
+	for _, antHill := range board.AntHills {
+		for 0 < antHill.tile.Food {
+			ant := antHill.spawnAnt()
+			board.Ants.Put(ant)
+			ant.Team.Ants.Put(ant)
+			antHill.tile.RemoveFood(1)
+		}
+	}
+}
+
+func moveFood(fromTile, toTile *Tile) {
+	if fromTile.Food > 0 {
+		fromTile.RemoveFood(1)
+		toTile.PutFood(1)
+	}
+}
+
+func (board *Board) MoveAnts() {
+	board.Ants.Do(func(ant *Ant) {
+		origin := ant.Pos
+		env := board.At(origin).Environment
+
+		// TODO: Enable killing of bases
+		brains := make([]AntBrain, 0) //board.At(origin).Ants.brainsExcept(ant)
+
+		var destination Pos
+
+		decision, bringFood := ant.Brain.Decide(env, brains)
+		switch decision {
+		case NORTH:
+			destination = board.NorthFrom(origin)
+		case SOUTH:
+			destination = board.SouthFrom(origin)
+		case EAST:
+			destination = board.EastFrom(origin)
+		case WEST:
+			destination = board.WestFrom(origin)
+		case HERE:
+			return
+		}
+
+		fromTile := board.At(ant.Pos)
+		fromTile.RemoveAnt(ant)
+
+		ant.Pos = destination
+		toTile := board.At(ant.Pos)
+
+		if 0 < toTile.Ants.Len() && toTile.Team != ant.Team {
+			toTile.Ants.Do(func(anAnt *Ant) {
+				board.Ants.Remove(anAnt)
+				toTile.Ants.Remove(anAnt)
+				anAnt.Team.Ants.Remove(anAnt)
+			})
+		}
+
+		toTile.PutAnt(ant)
+
+		if bringFood {
+			moveFood(fromTile, toTile)
+		}
+
+		board.Update(origin)
+		board.Update(destination)
+	})
+}
+
+func (b *Board) CheckForWin() bool {
+	nTeamsWithAnts := 0
+	for _, team := range b.Teams {
+		if team.Ants.Len() > 0 {
+			nTeamsWithAnts++
+			if nTeamsWithAnts > 1 {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func (b *Board) TeamsByRank() []*Team {
+	teams := make(Teams, len(b.Teams))
+	copy(teams, b.Teams)
+	sort.Sort(ByRank{teams})
+	return teams
 }
 
 func (b *Board) Update(pos Pos) {
@@ -131,16 +189,62 @@ func (b *Board) Update(pos Pos) {
 	}
 }
 
-func NewBoard() *Board {
-	board := new(Board);
-	board.Ants = NewAntSet(10000);
-	for x := 0; x < WIDTH; x++ {
-		for y := 0; y < HEIGHT; y++ {
-			board.Tiles[x][y] = new(Tile)
-			board.Tiles[x][y].Ants = NewAntSet(20)
-		}
-	}
-	return board
+func (b *Board) Width() int {
+	return b.width
 }
 
-type Environment [5](*Tile)
+func (b *Board) Height() int {
+	return b.height
+}
+
+func (board *Board) createGrid() {
+	board.columns = make([]column, board.width)
+	for x := 0; x < board.width; x++ {
+		board.columns[x] = make([]*Tile, board.height)
+	}
+}
+
+func (b *Board) createTiles() {
+	for x := 0; x < b.width; x++ {
+		for y := 0; y < b.height; y++ {
+			tile := new(Tile)
+			tile.board = b
+			b.columns[x][y] = tile
+			tile.Ants = NewAntSet(20)
+			tile.environmentTile = &TileInfo{tile}
+			tile.Environment = new(Environment)
+			tile.pos = Pos{x, y}
+		}
+	}
+}
+
+func (board *Board) linkEnvironmentTiles() {
+	for x := 0; x < board.width; x++ {
+		for y := 0; y < board.height; y++ {
+			pos := Pos{x, y}
+			env := board.At(pos).Environment
+			env.Here = board.At(pos).environmentTile
+			env.North = board.At(board.NorthFrom(pos)).environmentTile
+			env.East = board.At(board.EastFrom(pos)).environmentTile
+			env.South = board.At(board.SouthFrom(pos)).environmentTile
+			env.West = board.At(board.WestFrom(pos)).environmentTile
+		}
+	}
+}
+
+func (board *Board) takeTurn() {
+	board.SpawnAnts()
+	board.SpawnFoodRandomly(nTilesToReceiveExtraFood, nFoodToPutOnTiles)
+	board.MoveAnts()
+}
+
+func NewBoard(width, height int) (board *Board) {
+	board = new(Board)
+	board.width = width
+	board.height = height
+	board.Ants = NewAntSet(10000)
+	board.createGrid()
+	board.createTiles()
+	board.linkEnvironmentTiles()
+	return
+}

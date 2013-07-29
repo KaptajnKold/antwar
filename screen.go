@@ -1,63 +1,52 @@
 package antwar
 
 import (
-	"exp/gui"
-	"exp/gui/x11"
-	"container/vector"
-	"time"
+	"github.com/BurntSushi/xgbutil"
+	"github.com/BurntSushi/xgbutil/xgraphics"
+	"github.com/BurntSushi/xgbutil/xwindow"
+	"image"
 	"sync"
+	"time"
 )
 
 type GUI struct {
-	window gui.Window
-	queue vector.Vector
-	board *Board
-	mutex sync.Mutex
+	board  *Board
+	mutex  sync.Mutex
+	canvas *xgraphics.Image
+	queue  map[Pos]bool
+	win    *xwindow.Window
 }
 
 func (gui *GUI) Update(pos Pos) {
 	gui.mutex.Lock()
-	gui.queue.Push(pos)
+	gui.queue[pos] = true
 	gui.mutex.Unlock()
-}
-
-func (s *GUI) Close() {
-	<- s.window.EventChan()
-	s.window.Close()
-}
-
-func (s *GUI) Flush() {
-	s.window.FlushImage();
 }
 
 func (gui *GUI) StartLoop() {
 	go func() {
 		for {
 			gui.mutex.Lock()
-			updateCount := gui.queue.Len()
-			for i := 0; i < updateCount; i++ {
-				pos, _ := gui.queue.At(i).(Pos);
-				gui.window.Screen().Set(pos.X, pos.Y, gui.board.At(pos).Color())
+			for pos, _ := range gui.queue {
+				gui.canvas.Set(pos.X, pos.Y, gui.board.At(pos).Color())
+				delete(gui.queue, pos)
 			}
-			gui.queue.Cut(0, updateCount);
-			gui.Flush();
 			gui.mutex.Unlock()
+			gui.canvas.XDraw()
+			gui.canvas.XPaint(gui.win.Id)
 			time.Sleep(20000000)
 		}
 	}()
 }
 
-
-func NewGUI(b *Board) *GUI {
-	win, err := x11.NewWindow()
-	if (err != nil) {
-		println(err);
-		return nil
-	}
+func NewGUI(board *Board) *GUI {
 	gui := new(GUI)
-	gui.window = win
-	gui.board = b
-	b.OnUpdate = func (p Pos) { gui.Update(p) }
+	X, _ := xgbutil.NewConn()
+	gui.canvas = xgraphics.New(X, image.Rect(0, 0, board.Width(), board.Height()))
+	gui.queue = make(map[Pos]bool, board.Width()*board.Height())
+	gui.win = gui.canvas.XShow()
+	gui.board = board
+	board.OnUpdate = func(p Pos) { gui.Update(p) }
 	gui.StartLoop()
 	return gui
 }
