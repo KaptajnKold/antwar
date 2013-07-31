@@ -2,68 +2,112 @@ package antwar
 
 import (
 	"image/color"
+	"fmt"
 )
 
 type Tile struct {
-	Ants            AntSet
-	Food            int
-	Team            *Team
-	Environment     *Environment
-	environmentTile *TileInfo
-	board           *Board
-	pos             Pos
+	ants                           AntSet
+	food                           int
+	team                           *Team
+	board                          *Board
+	pos                            Pos
+	antHill                        *AntHill
+	here, north, east, south, west *Tile
 }
 
-func (t *Tile) RemoveAnt(theAnt *Ant) {
-	t.Ants.Remove(theAnt)
+func (t *Tile) removeAnt(theAnt *Ant) {
+	t.ants.Remove(theAnt)
 }
 
-func (t *Tile) PutAnt(theAnt *Ant) {
-	t.Ants.Put(theAnt)
-	t.Team = theAnt.Team
+func (t *Tile) putAnt(a *Ant) {
+	if t.team != a.team {
+		t.killAnts()
+		t.destroyAntHill()
+		t.team = a.team
+	}
+
+	t.ants.Put(a)
+	a.tile = t
 }
 
-func (t *Tile) PutFood(amount int) {
-	t.Food += amount
+func (t *Tile) putFood(amount int) {
+	t.food += amount
 }
 
-func (t *Tile) RemoveFood(amount int) {
-	t.Food -= amount
+func (t *Tile) removeFood(amount int) {
+	t.food -= amount
 }
 
-func (t *Tile) CreateAntHill(team *Team) *AntHill {
+func (t *Tile) createAntHill(team *Team) *AntHill {
 	anthill := new(AntHill)
-	anthill.Team = team
+	anthill.team = team
 	anthill.tile = t
+	t.team = team
+	t.antHill = anthill
+	fmt.Printf("Created anthill at %v for team %v\n", anthill.tile.pos, team.name)
 	return anthill
 }
 
-func (t *Tile) Color() color.Color {
-	if t.Ants.Len() > 0 {
-		return t.Team.Color
+func (t *Tile) destroyAntHill() {
+	if t.antHill == nil {
+		return
 	}
-	if t.Team != nil {
-		r, g, b, _ := t.Team.Color.RGBA()
+	fmt.Printf("Destroyed anthill for %v", t.antHill.team.name)
+	t.board.removeAntHill(t.antHill)
+	t.antHill = nil
+
+}
+
+func (t *Tile) killAnts() {
+	if 0 == t.ants.Len() {
+		return
+	}
+	t.ants.Do(func(a *Ant) {
+		t.board.ants.Remove(a)
+		t.ants.Remove(a)
+		a.team.ants.Remove(a)
+	})
+}
+
+func (t *Tile) color() color.Color {
+	if t.ants.Len() > 0 {
+		return t.team.color
+	}
+	if t.team != nil {
+		r, g, b, _ := t.team.color.RGBA()
 		return color.RGBA{uint8(int(r) << 7), uint8(int(g) << 7), uint8(int(b) << 7), 10}
 	}
-	return color.RGBA{255, 255, 255, uint8(t.Food)}
+	return color.RGBA{255, 255, 255, uint8(t.food)}
 }
 
-type TileInfo struct {
-	tile *Tile
+func (t *Tile) update() {
+	t.board.Update(t)
 }
 
-func (e *TileInfo) AntCount() int {
-	return e.tile.Ants.Len()
+func (t *Tile) AntCount() int {
+	return t.ants.Len()
 }
 
-func (e *TileInfo) FoodCount() int {
-	return e.tile.Food
+func (t *Tile) FoodCount() int {
+	return t.food
 }
 
-func (e *TileInfo) Team() string {
-	if e.tile.Ants.Len() > 0 {
-		return e.tile.Team.Name
-	}
-	return ""
+func (t *Tile) Here() *Tile {
+	return t
+}
+
+func (t *Tile) North() *Tile {
+	return t.north
+}
+
+func (t *Tile) East() *Tile {
+	return t.east
+}
+
+func (t *Tile) South() *Tile {
+	return t.south
+}
+
+func (t *Tile) West() *Tile {
+	return t.west
 }

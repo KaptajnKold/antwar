@@ -1,17 +1,19 @@
 package antwar
 
-import "image/color"
+import (
+    "image/color"
+)
 
 type Action int
 
 type AntBrain interface {
-	Decide(env *Environment, brains []AntBrain) (Action, bool)
+	Decide(env *Tile, brains []AntBrain) (Action, bool)
 }
 
 type Ant struct {
-	Brain AntBrain
-	Team  *Team
-	Pos
+	brain AntBrain
+	team  *Team
+	tile *Tile
 }
 
 type AntSpawner (func() AntBrain)
@@ -42,7 +44,7 @@ func (set AntSet) brainsExcept(exception *Ant) []AntBrain {
 	brains := make([]AntBrain, 0, set.Len()-1)
 	set.Do(func(ant *Ant) {
 		if ant != exception {
-			brains = append(brains, ant.Brain)
+			brains = append(brains, ant.brain)
 		}
 	})
 	return brains
@@ -54,30 +56,40 @@ func NewAntSet(capacity int) AntSet {
 }
 
 type AntHill struct {
-	Team *Team
-	Ants AntSet
+	team *Team
+	ants AntSet
 	tile *Tile
 }
 
-func (hill *AntHill) spawnAnt() *Ant {
-	ant := &Ant{hill.Team.Spawn(), hill.Team, hill.tile.pos}
-	hill.tile.PutAnt(ant)
-	return ant
+func (h *AntHill) spawnAnt() *Ant {
+	ant := &Ant{h.team.spawn(), h.team, h.tile}
+	h.tile.putAnt(ant)
+    h.tile.board.ants.Put(ant)
+	ant.team.ants.Put(ant)
+    return ant
+}
+
+func (hill *AntHill) spawnAnts() {
+	for 0 < hill.tile.food {
+    	hill.spawnAnt()
+    	hill.tile.removeFood(1)
+	}
+    hill.tile.update()
 }
 
 var colorIndex = 0
 
 type Team struct {
-	Name  string
-	Ants  AntSet
-	Spawn AntSpawner
-	Color color.Color
+	name  string
+	ants  AntSet
+	spawn AntSpawner
+	color color.Color
 }
 
 type Teams []*Team
 
 func (self *Team) RanksLowerThan(other *Team) bool {
-	return self.Ants.Len() < other.Ants.Len()
+	return self.ants.Len() < other.ants.Len()
 }
 
 type ByRank struct {

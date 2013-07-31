@@ -21,14 +21,14 @@ const (
 func printStats(teams []*Team, turn int) {
 	fmt.Printf("\nTurn: %v\n", turn)
 	for _, team := range teams {
-		fmt.Printf("%v: %v\n", team.Name, team.Ants.Len())
+		fmt.Printf("%v: %v\n", team.name, team.ants.Len())
 	}
 	fmt.Printf("\x1b[%vA", len(teams)+2)
 }
 
 func printTeams(teams Teams) {
 	for i, team := range teams {
-		fmt.Printf("%v. %v\n", i+1, team.Name)
+		fmt.Printf("%v. %v\n", i+1, team.name)
 	}
 }
 
@@ -39,7 +39,7 @@ func NewGame(teams []*Team) {
 	board := NewBoard(boardWidth, boardHeight)
 	NewGUI(board)
 
-	board.Teams = teams
+	board.teams = teams
 
 	board.createStartingAntHills()
 	board.CreateStartingAnts(nStartingAnts)
@@ -47,7 +47,7 @@ func NewGame(teams []*Team) {
 
 	for i := 0; i < nTurnsMax; i++ {
 		board.takeTurn()
-		printStats(board.Teams, i)
+		printStats(board.teams, i)
 		if board.CheckForWin() {
 			break
 		}

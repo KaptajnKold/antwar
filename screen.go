@@ -28,7 +28,7 @@ func (gui *GUI) StartLoop() {
 		for {
 			gui.mutex.Lock()
 			for pos, _ := range gui.queue {
-				gui.canvas.Set(pos.X, pos.Y, gui.board.At(pos).Color())
+				gui.canvas.Set(pos.X, pos.Y, gui.board.At(pos).color())
 				delete(gui.queue, pos)
 			}
 			gui.mutex.Unlock()
@@ -46,7 +46,7 @@ func NewGUI(board *Board) *GUI {
 	gui.queue = make(map[Pos]bool, board.Width()*board.Height())
 	gui.win = gui.canvas.XShow()
 	gui.board = board
-	board.OnUpdate = func(p Pos) { gui.Update(p) }
+	board.onUpdate = func(p Pos) { gui.Update(p) }
 	gui.StartLoop()
 	return gui
 }
