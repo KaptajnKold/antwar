@@ -1,7 +1,7 @@
 package antwar
 
 import (
-    "image/color"
+	"image/color"
 )
 
 type Action int
@@ -13,7 +13,7 @@ type AntBrain interface {
 type Ant struct {
 	brain AntBrain
 	team  *Team
-	tile *Tile
+	tile  *Tile
 }
 
 type AntSpawner (func() AntBrain)
@@ -64,17 +64,17 @@ type AntHill struct {
 func (h *AntHill) spawnAnt() *Ant {
 	ant := &Ant{h.team.spawn(), h.team, h.tile}
 	h.tile.putAnt(ant)
-    h.tile.board.ants.Put(ant)
+	h.tile.board.ants.Put(ant)
 	ant.team.ants.Put(ant)
-    return ant
+	return ant
 }
 
 func (hill *AntHill) spawnAnts() {
 	for 0 < hill.tile.food {
-    	hill.spawnAnt()
-    	hill.tile.removeFood(1)
+		hill.spawnAnt()
+		hill.tile.removeFood(1)
 	}
-    hill.tile.update()
+	hill.tile.update()
 }
 
 var colorIndex = 0

@@ -1,8 +1,8 @@
 package antwar
 
 import (
-	"image/color"
 	"fmt"
+	"image/color"
 )
 
 type Tile struct {
@@ -75,7 +75,7 @@ func (t *Tile) color() color.Color {
 	}
 	if t.team != nil {
 		r, g, b, _ := t.team.color.RGBA()
-		return color.RGBA{uint8(int(r) << 7), uint8(int(g) << 7), uint8(int(b) << 7), 10}
+		return color.RGBA{uint8(int(r) << 7), uint8(int(g) << 7), uint8(int(b) << 7), 100}
 	}
 	return color.RGBA{255, 255, 255, uint8(t.food)}
 }

@@ -69,18 +69,11 @@ func (board *Board) createStartingAntHills() {
 
 func (board *Board) CreateStartingAnts(startingNumberOfAnts int) {
 	// Add 1 ant at a time to each team to avoid one team's ants all get to move before the other teams' ants
-	for _, antHill := range board.antHills {
-		fmt.Printf("Initially %v starting ants for team %v.\n", antHill.team.ants.Len(), antHill.team.name)
-	}
 	for i := 0; i < startingNumberOfAnts; i++ {
 		for _, antHill := range board.antHills {
 			antHill.spawnAnt()
 		}
 	}
-	for _, antHill := range board.antHills {
-		fmt.Printf("Created %v starting ants for team %v.\n", antHill.team.ants.Len(), antHill.team.name)
-	}
-	fmt.Printf("Created %v starting ants.\n", board.ants.Len())
 }
 
 func (b *Board) SpawnFoodRandomly(ncolumns, nFood int) {
@@ -92,6 +85,7 @@ func (b *Board) SpawnFoodRandomly(ncolumns, nFood int) {
 }
 
 func (board *Board) SpawnAnts() {
+	// FIXME: Spawning ants for one anthill at a time gives an advantage to the team which is listed first.
 	for _, antHill := range board.antHills {
 		antHill.spawnAnts()
 	}
@@ -105,9 +99,9 @@ func moveFood(fromTile, toTile *Tile) {
 }
 
 func (b *Board) removeAntHill(h *AntHill) {
-	for index, candidate := range(b.antHills) {
+	for index, candidate := range b.antHills {
 		if candidate == h {
-			b.antHills = append(b.antHills[:index], b.antHills[index + 1:]...)
+			b.antHills = append(b.antHills[:index], b.antHills[index+1:]...)
 			return
 		}
 	}
@@ -226,10 +220,7 @@ func (board *Board) takeTurn() {
 }
 
 func NewBoard(width, height int) (board *Board) {
-	board = new(Board)
-	board.width = width
-	board.height = height
-	board.ants = NewAntSet(10000)
+	board = &Board{width: width, height: height, ants: NewAntSet(10000)}
 	board.createGrid()
 	board.createTiles()
 	board.linkTiles()

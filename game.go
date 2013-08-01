@@ -9,13 +9,13 @@ import (
 
 const (
 	nTurnsMax                = 50000
-	nStartingAnts            = 1
-	nTilesStartingWithFood   = 50
+	nStartingAnts            = 50
+	nTilesStartingWithFood   = 500
 	nFoodOnStartingTile      = 50
-	nTilesToReceiveExtraFood = 3
-	nFoodToPutOnTiles        = 10
-	boardWidth               = 1000
-	boardHeight              = 1000
+	nTilesToReceiveExtraFood = 2
+	nFoodToPutOnTiles        = 70
+	boardWidth               = 500
+	boardHeight              = 500
 )
 
 func printStats(teams []*Team, turn int) {
