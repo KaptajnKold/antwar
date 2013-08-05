@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"runtime"
 	"time"
+	"flag"
 )
 
 const (
@@ -14,8 +15,10 @@ const (
 	nFoodOnStartingTile      = 50
 	nTilesToReceiveExtraFood = 2
 	nFoodToPutOnTiles        = 70
-	boardWidth               = 500
-	boardHeight              = 500
+)
+
+var (
+	width, height int
 )
 
 func printStats(teams []*Team, turn int) {
@@ -36,7 +39,11 @@ func NewGame(teams []*Team) {
 	runtime.GOMAXPROCS(2)
 	rand.Seed(time.Now().UTC().UnixNano())
 
-	board := NewBoard(boardWidth, boardHeight)
+	flag.IntVar(&width, "width", 500, "Width of game board")
+	flag.IntVar(&height, "height", 500, "Height of game board")
+	flag.Parse()
+
+	board := NewBoard(width, height)
 	NewGUI(board)
 
 	board.teams = teams
